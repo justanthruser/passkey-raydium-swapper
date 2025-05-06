@@ -14,8 +14,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Passkey Raydium Swapper', // Consider updating title if needed
-  description: 'Swap tokens on Raydium using LazorKit wallet connection', // Updated description
+  title: 'PassRaydSwapr',
+  description: 'Swap tokens on Raydium using LazorKit wallet connection',
 };
 
 export default function RootLayout({
