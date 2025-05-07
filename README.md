@@ -128,3 +128,6 @@ Deploying this application requires:
 *   **Responsiveness:** Check the layout on various screen sizes.
 
 **Note:** End-to-end transaction testing requires the full implementation with the Raydium SDK.
+
+## LazorKit 🤍
+https://github.com/lazor-kit/lazor-kit
