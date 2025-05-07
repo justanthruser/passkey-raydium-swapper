@@ -16,6 +16,7 @@ export const useTokenBalance = (token: Token | undefined, publicKey: string | nu
 
     const fetchBalance = async () => {
       try {
+        console.log(publicKey);
         const owner = new PublicKey(publicKey);
         const mint = new PublicKey(token.address);
 
