@@ -7,16 +7,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, ArrowRightLeft, CheckCircle, Info, Loader2, Wallet } from 'lucide-react';
-import { getSupportedTokens, estimateOutputAmount } from '@/services/raydium';
-import type { Token, SwapTransaction } from '@/services/raydium';
-import { useSolana } from '@/context/solana-provider';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, ArrowDownUp, CheckCircle, Info, Loader2, Sparkles, Wallet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
+import { useSolana } from '@/context/solana-provider';
+import type { Token } from '@/services/raydium';
+import { formatTokenAmount } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
-import { Skeleton } from '@/components/ui/skeleton';
-import { formatTokenAmount, parseTokenAmount } from '@/lib/utils';
-import { useTokenBalance } from '@/hooks/use-token-balance'; // Import the real balance hook
+import { parseTokenAmount } from '@/lib/utils';
+import { getSupportedTokens, estimateOutputAmount } from '@/services/raydium';
+import type { SwapTransaction } from '@/services/raydium';
+import { useTokenBalance } from '@/hooks/use-token-balance';
 
 export default function Home() {
   const {
@@ -42,6 +45,8 @@ export default function Home() {
 
   // Fetch real token balance using the new hook
   const inputBalance = useTokenBalance(inputToken, publicKey);
+
+  const totalLoading = isSwapping || isSolanaLoading;
 
   // Fetch supported tokens on mount
   useEffect(() => {
@@ -197,13 +202,15 @@ export default function Home() {
     }
   };
 
-  const renderTokenSelectItem = (token: Token) => (
-    <SelectItem key={token.address} value={token.address} disabled={token.address === inputToken?.address || token.address === outputToken?.address}>
-      <div className="flex items-center gap-2">
-        <span>{token.symbol}</span>
-      </div>
-    </SelectItem>
-  );
+  const renderTokenSelectItem = (token: Token) => {
+    return (
+      <SelectItem key={token.address} value={token.address} disabled={token.address === inputToken?.address || token.address === outputToken?.address}>
+        <div className="flex items-center gap-2">
+          <span>{token.symbol}</span>
+        </div>
+      </SelectItem>
+    );
+  };
 
   const renderTokenTriggerValue = (token: Token | undefined) => {
     if (!token) return <span className="text-muted-foreground">Select token</span>;
@@ -214,13 +221,11 @@ export default function Home() {
     );
   };
 
-  const totalLoading = isSwapping || isSolanaLoading;
-
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col items-center">
-      <Card className="w-full max-w-md shadow-lg border border-border">
+      <Card className="w-full max-w-md shadow-lg border border-border/40 bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center text-primary">
+          <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
             Raydium LazorKit Swap
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground">
@@ -229,170 +234,175 @@ export default function Home() {
         </CardHeader>
         <CardContent>
           {!isConnected ? (
-            <div className="text-center p-6 bg-muted rounded-md">
-              <Info className="mx-auto h-8 w-8 text-primary mb-2" />
-              <p className="text-muted-foreground">Please connect your Lazor wallet using the button in the header to enable swapping.</p>
-            </div>
-          ) : isLoadingTokens ? (
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : (
-            <form onSubmit={handleSwapSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="input-token">You Pay</Label>
-                  {publicKey && inputBalance !== null && inputToken ? (
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="sm"
-                      className="text-xs h-auto p-0 text-primary hover:text-primary/80"
-                      onClick={handleMaxBalance}
-                      disabled={totalLoading}
-                    >
-                      Balance: {formatTokenAmount(inputBalance, inputToken.decimals)} {inputToken.symbol} (Max)
-                    </Button>
-                  ) : publicKey && inputBalance === null && inputToken ? (
-                    <span className="text-xs text-muted-foreground">Loading balance...</span>
-                  ) : null}
-                </div>
-                <div className="flex gap-2">
-                  <Select
-                    value={inputToken?.address}
-                    onValueChange={(value) => handleSelectToken('input', value)}
+          <div className="text-center p-6 bg-primary/5 border border-primary/10 rounded-lg">
+            <Info className="mx-auto h-8 w-8 text-primary mb-2 animate-pulse" />
+            <p className="text-muted-foreground">Please connect your Lazor wallet using the button in the header to enable swapping.</p>
+          </div>
+        ) : isLoadingTokens ? (
+          <div className="space-y-4 animate-pulse">
+            <Skeleton className="h-10 w-full bg-primary/5" />
+            <Skeleton className="h-10 w-full bg-primary/5" />
+            <Skeleton className="h-10 w-full bg-primary/5" />
+          </div>
+        ) : (
+          <form onSubmit={handleSwapSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="input-token">You Pay</Label>
+                {publicKey && inputBalance !== null && inputToken ? (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="text-xs h-auto p-0 text-primary hover:text-primary/80"
+                    onClick={handleMaxBalance}
                     disabled={totalLoading}
                   >
-                    <SelectTrigger id="input-token" aria-label="Select input token" className="w-1/3 min-w-[100px]">
-                      <SelectValue placeholder="Token">
-                        {renderTokenTriggerValue(inputToken)}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Input Token</SelectLabel>
-                        {supportedTokens.map(renderTokenSelectItem)}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    id="input-amount"
-                    type="text"
-                    placeholder="0.0"
-                    value={inputAmountString}
-                    onChange={(e) => setInputAmountString(e.target.value.replace(/[^0-9.]/g, ''))}
-                    required
-                    className="w-2/3 text-right text-lg tabular-nums"
-                    disabled={totalLoading}
-                  />
-                </div>
+                    Balance: {formatTokenAmount(inputBalance, inputToken.decimals)} {inputToken.symbol} (Max)
+                  </Button>
+                ) : publicKey && inputBalance === null && inputToken ? (
+                  <span className="text-xs text-muted-foreground">Loading balance...</span>
+                ) : null}
               </div>
-
-              <div className="flex justify-center my-[-1rem]">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  type="button"
-                  onClick={handleSwapDirection}
-                  disabled={totalLoading || !inputToken || !outputToken}
-                  className="z-10 bg-background border-2 border-border hover:bg-accent hover:text-accent-foreground rounded-full p-1 h-9 w-9"
+              <div className="flex gap-2">
+                <Select
+                  value={inputToken?.address}
+                  onValueChange={(value) => handleSelectToken('input', value)}
+                  disabled={totalLoading}
                 >
-                  <ArrowRightLeft className="h-4 w-4 text-primary group-hover:text-accent-foreground" />
-                  <span className="sr-only">Swap token direction</span>
-                </Button>
+                  <SelectTrigger id="input-token" aria-label="Select input token" className="w-1/3 min-w-[100px]">
+                    <SelectValue placeholder="Token">
+                      {renderTokenTriggerValue(inputToken)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Input Token</SelectLabel>
+                      {supportedTokens.map(renderTokenSelectItem)}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <Input
+                  id="input-amount"
+                  type="text"
+                  placeholder="0.0"
+                  value={inputAmountString}
+                  onChange={(e) => setInputAmountString(e.target.value.replace(/[^0-9.]/g, ''))}
+                  required
+                  className="w-2/3 text-right text-lg tabular-nums"
+                  disabled={totalLoading}
+                />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="output-token">You Receive (Estimated)</Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={outputToken?.address}
-                    onValueChange={(value) => handleSelectToken('output', value)}
-                    disabled={totalLoading}
-                  >
-                    <SelectTrigger id="output-token" aria-label="Select output token" className="w-1/3 min-w-[100px]">
-                      <SelectValue placeholder="Token">
-                        {renderTokenTriggerValue(outputToken)}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Output Token</SelectLabel>
-                        {supportedTokens.map(renderTokenSelectItem)}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center justify-end border rounded-md px-3 py-2 h-10 w-2/3 bg-muted/50 text-lg tabular-nums">
-                    {isLoadingEstimate ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    ) : (
-                      <span className="text-foreground">
-                        {estimatedOutput !== null && outputToken ? formatTokenAmount(estimatedOutput, outputToken.decimals) : '0.0'}
-                      </span>
-                    )}
-                  </div>
+            <div className="flex justify-center my-[-1rem]">
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                onClick={handleSwapDirection}
+                disabled={totalLoading || !inputToken || !outputToken}
+                className="z-10 bg-background border-2 border-border hover:bg-accent hover:text-accent-foreground rounded-full p-1 h-9 w-9"
+              >
+                <ArrowDownUp className="h-4 w-4 text-primary group-hover:text-accent-foreground" />
+                <span className="sr-only">Swap token direction</span>
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="output-token">You Receive (Estimated)</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={outputToken?.address}
+                  onValueChange={(value) => handleSelectToken('output', value)}
+                  disabled={totalLoading}
+                >
+                  <SelectTrigger id="output-token" aria-label="Select output token" className="w-1/3 min-w-[100px]">
+                    <SelectValue placeholder="Token">
+                      {renderTokenTriggerValue(outputToken)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Output Token</SelectLabel>
+                      {supportedTokens.map(renderTokenSelectItem)}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center justify-end border border-border/40 rounded-md px-3 py-2 h-10 w-2/3 bg-muted/30 backdrop-blur-sm text-lg tabular-nums shadow-inner">
+                  {isLoadingEstimate ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <span className="text-foreground">
+                      {estimatedOutput !== null && outputToken ? formatTokenAmount(estimatedOutput, outputToken.decimals) : '0.0'}
+                    </span>
+                  )}
                 </div>
               </div>
+            </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6"
-                disabled={
-                  !isConnected ||
-                  totalLoading ||
-                  isLoadingEstimate ||
-                  !estimatedOutput ||
-                  estimatedOutput <= 0 ||
-                  (inputBalance !== null && inputToken && parseTokenAmount(inputAmountString, inputToken.decimals) > inputBalance)
-                }
-              >
-                {totalLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Wallet className="mr-2 h-5 w-5" />}
-                {!isConnected
-                  ? 'Connect Wallet'
-                  : isSolanaLoading
-                  ? 'Connecting/Signing...'
-                  : isSwapping
-                  ? 'Processing Swap...'
-                  : inputBalance !== null && inputToken && parseTokenAmount(inputAmountString, inputToken.decimals) > inputBalance
-                  ? 'Insufficient Balance'
-                  : !estimatedOutput || estimatedOutput <= 0
-                  ? 'Enter Amount'
-                  : 'Swap Tokens'}
-              </Button>
-            </form>
-          )}
-        </CardContent>
-        {(swapError || swapSuccess || lazorError) && (
-          <CardFooter className="flex flex-col gap-3 pt-4">
-            {lazorError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Wallet Error</AlertTitle>
-                <AlertDescription className="break-words text-xs">{lazorError}</AlertDescription>
-              </Alert>
-            )}
-            {swapError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Swap Error</AlertTitle>
-                <AlertDescription className="break-words text-xs">{swapError}</AlertDescription>
-              </Alert>
-            )}
-            {swapSuccess && (
-              <Alert variant="default" className="border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20">
-                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-500" />
-                <AlertTitle className="text-green-800 dark:text-green-400">Swap Successful</AlertTitle>
-                <AlertDescription className="break-all text-xs text-green-700 dark:text-green-300">{swapSuccess}</AlertDescription>
-              </Alert>
-            )}
-          </CardFooter>
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground text-lg py-6 transition-all duration-300"
+              disabled={
+                !isConnected ||
+                totalLoading ||
+                isLoadingEstimate ||
+                !estimatedOutput ||
+                estimatedOutput <= 0 ||
+                (inputBalance !== null && inputToken && parseTokenAmount(inputAmountString, inputToken.decimals) > inputBalance)
+              }
+            >
+              {totalLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Wallet className="mr-2 h-5 w-5" />}
+              {!isConnected
+                ? 'Connect Wallet'
+                : isSolanaLoading
+                ? 'Connecting/Signing...'
+                : isSwapping
+                ? 'Processing Swap...'
+                : inputBalance !== null && inputToken && parseTokenAmount(inputAmountString, inputToken.decimals) > inputBalance
+                ? 'Insufficient Balance'
+                : !estimatedOutput || estimatedOutput <= 0
+                ? 'Enter Amount'
+                : 'Swap Tokens'}
+            </Button>
+          </form>
         )}
-      </Card>
-      <p className="text-xs text-muted-foreground mt-4 text-center max-w-md">
-        This is a demo using LazorKit for wallet connection and transaction signing, interacting with Raydium on the LazorKit network. Use with caution.
+      </CardContent>
+      {(swapError || swapSuccess || lazorError) && (
+        <CardFooter className="flex flex-col gap-3 pt-4">
+          {lazorError && (
+            <Alert variant="destructive" className="border-destructive/30 bg-destructive/10">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Wallet Error</AlertTitle>
+              <AlertDescription className="break-words text-xs opacity-90">{lazorError}</AlertDescription>
+            </Alert>
+          )}
+          {swapError && (
+            <Alert variant="destructive" className="border-destructive/30 bg-destructive/10">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Swap Error</AlertTitle>
+              <AlertDescription className="break-words text-xs opacity-90">{swapError}</AlertDescription>
+            </Alert>
+          )}
+          {swapSuccess && (
+            <Alert variant="default" className="border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400">
+              <CheckCircle className="h-4 w-4" />
+              <AlertTitle>Swap Successful</AlertTitle>
+              <AlertDescription className="break-all text-xs opacity-90">{swapSuccess}</AlertDescription>
+            </Alert>
+          )}
+        </CardFooter>
+      )}
+    </Card>
+    <div className="mt-8 flex flex-col gap-4 items-center text-center">
+      <div className="flex items-center gap-2 text-sm bg-primary/5 border border-primary/10 px-4 py-2 rounded-full">
+        <Sparkles className="h-4 w-4 text-primary" />
+        <span className="text-primary">Powered by LazorKit & Raydium</span>
+      </div>
+      <p className="text-xs text-muted-foreground max-w-md">
+        This is a demo using LazorKit for wallet connection and transaction signing, interacting with Raydium on the LazorKit network. Please use with caution, arrigato.
       </p>
     </div>
-  );
-}
+  </div>
+)};
