@@ -28,12 +28,14 @@ export const useTokenBalance = (token: Token | undefined, publicKey: string | nu
 
         const accounts = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, { filters });
         if (accounts.length === 0) {
-          setBalance(0);
+          if (mounted) {
+            setBalance(0);
+          }
           return;
         }
 
         const accountInfo = await connection.getAccountInfo(accounts[0].pubkey);
-        if (accountInfo?.data) {
+        if (accountInfo?.data && mounted) {
           const balance = Number(accountInfo.data.readBigUInt64LE(64)) / Math.pow(10, token.decimals);
           setBalance(balance);
         } else {
@@ -45,8 +47,14 @@ export const useTokenBalance = (token: Token | undefined, publicKey: string | nu
       }
     };
 
+    let mounted = true;
     fetchBalance();
-  }, [token, publicKey, connection]);
+
+    // Cleanup function to prevent setting state if unmounted
+    return () => {
+      mounted = false;
+    };
+  }, [token?.address, publicKey, connection]);
 
   return balance;
 };
