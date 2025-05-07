@@ -200,11 +200,6 @@ export default function Home() {
   const renderTokenSelectItem = (token: Token) => (
     <SelectItem key={token.address} value={token.address} disabled={token.address === inputToken?.address || token.address === outputToken?.address}>
       <div className="flex items-center gap-2">
-        {token.logoURI ? (
-          <Image src={token.logoURI} alt={token.symbol} width={20} height={20} className="rounded-full" />
-        ) : (
-          <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs">{token.symbol.charAt(0)}</div>
-        )}
         <span>{token.symbol}</span>
       </div>
     </SelectItem>
@@ -214,11 +209,6 @@ export default function Home() {
     if (!token) return <span className="text-muted-foreground">Select token</span>;
     return (
       <div className="flex items-center gap-2">
-        {token.logoURI ? (
-          <Image src={token.logoURI} alt={token.symbol} width={20} height={20} className="rounded-full" />
-        ) : (
-          <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs">{token.symbol.charAt(0)}</div>
-        )}
         <span>{token.symbol}</span>
       </div>
     );
