@@ -47,6 +47,9 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
   const [isSigning, setIsSigning] = useState<boolean>(false); // Specific loading state for signing
   const { toast } = useToast();
 
+  // Only initialize wallet on client side
+  const wallet = typeof window !== 'undefined' ? useWallet(connection || new Connection(RPC_URL, 'confirmed')) : null;
+
   // Initialize connection on mount
   useEffect(() => {
     try {
@@ -78,11 +81,10 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
     disconnect: null,
   });
 
-  // Initialize useWallet on client side
+  // Initialize wallet state whenever wallet changes
   useEffect(() => {
-    if (typeof window === 'undefined' || !connection) return;
-
-    const wallet = useWallet(connection);
+    if (!wallet) return;
+    
     setWalletState({
       isConnected: wallet.isConnected,
       publicKey: wallet.publicKey,
@@ -92,7 +94,7 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
       connect: wallet.connect,
       disconnect: wallet.disconnect,
     });
-  }, [connection]);
+  }, [wallet]);
 
   const isLoading = isSigning || walletState.isLazorLoading;
 
