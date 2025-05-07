@@ -47,8 +47,13 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
   const [isSigning, setIsSigning] = useState<boolean>(false); // Specific loading state for signing
   const { toast } = useToast();
 
+  // Only initialize wallet on client side
+  const wallet = typeof window !== 'undefined' ? useWallet(connection || new Connection(RPC_URL, 'confirmed')) : null;
+
   // Initialize connection on mount
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     try {
       const conn = new Connection(RPC_URL, 'confirmed');
       setConnection(conn);
@@ -57,7 +62,7 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
       console.error("Failed to connect to Solana:", error);
       toast({ title: "Solana Connection Error", description: "Could not connect to the Solana network.", variant: "destructive" });
     }
-  }, [toast]);
+  }, []);  // No dependencies needed as this should only run once on mount
 
   // Wallet state to store useWallet values
   const [walletState, setWalletState] = useState<{
@@ -78,11 +83,10 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
     disconnect: null,
   });
 
-  // Initialize useWallet on client side
-  useEffect(() => {
-    if (typeof window === 'undefined' || !connection) return;
-
-    const wallet = useWallet(connection);
+  // Update wallet state
+  const updateWalletState = useCallback(() => {
+    if (!wallet) return;
+    
     setWalletState({
       isConnected: wallet.isConnected,
       publicKey: wallet.publicKey,
@@ -92,7 +96,13 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
       connect: wallet.connect,
       disconnect: wallet.disconnect,
     });
-  }, [connection]);
+  }, [wallet?.isConnected, wallet?.publicKey, wallet?.error, wallet?.isLoading, wallet?.signMessage, wallet?.connect, wallet?.disconnect]);
+
+  // Initialize wallet state whenever wallet state changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    updateWalletState();
+  }, [updateWalletState]);
 
   const isLoading = isSigning || walletState.isLazorLoading;
 
