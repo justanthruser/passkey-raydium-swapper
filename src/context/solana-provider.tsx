@@ -52,6 +52,8 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
 
   // Initialize connection on mount
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     try {
       const conn = new Connection(RPC_URL, 'confirmed');
       setConnection(conn);
@@ -60,7 +62,7 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
       console.error("Failed to connect to Solana:", error);
       toast({ title: "Solana Connection Error", description: "Could not connect to the Solana network.", variant: "destructive" });
     }
-  }, [toast]);
+  }, []);  // No dependencies needed as this should only run once on mount
 
   // Wallet state to store useWallet values
   const [walletState, setWalletState] = useState<{
@@ -81,8 +83,8 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
     disconnect: null,
   });
 
-  // Initialize wallet state whenever wallet changes
-  useEffect(() => {
+  // Update wallet state
+  const updateWalletState = useCallback(() => {
     if (!wallet) return;
     
     setWalletState({
@@ -94,7 +96,13 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
       connect: wallet.connect,
       disconnect: wallet.disconnect,
     });
-  }, [wallet]);
+  }, [wallet?.isConnected, wallet?.publicKey, wallet?.error, wallet?.isLoading, wallet?.signMessage, wallet?.connect, wallet?.disconnect]);
+
+  // Initialize wallet state whenever wallet state changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    updateWalletState();
+  }, [updateWalletState]);
 
   const isLoading = isSigning || walletState.isLazorLoading;
 
